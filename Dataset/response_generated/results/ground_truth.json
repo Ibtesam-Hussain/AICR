@@ -1,0 +1,632 @@
+{
+  "task_01": {
+    "task_description": "Write a function that parses a CSV string and returns a list of dictionaries, one per row.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'strip'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    }
+  },
+  "task_02": {
+    "task_description": "Write a function that takes a list of date strings and returns them sorted chronologically.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable"
+    }
+  },
+  "task_03": {
+    "task_description": "Write a function to merge two dictionaries, combining values for keys that exist in both.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'items'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'copy'"
+    }
+  },
+  "task_04": {
+    "task_description": "Write a function that extracts all email addresses from a block of text.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - expected string or bytes-like object, got 'NoneType'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - expected string or bytes-like object, got 'NoneType'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    }
+  },
+  "task_05": {
+    "task_description": "Write a function that converts a nested JSON object into a flat dictionary with dot-notation keys.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got {'': None}"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'items'; Test 5 (lists): GPT doesn't handle nested lists, got {'a': [1, 2, 3]}"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got {}"
+    }
+  },
+  "task_06": {
+    "task_description": "Write a function that takes a list of numbers as strings and returns their sum.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable; Test 5 (malformed): Crashes on non-numeric string - could not convert string to float: 'abc'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable; Test 5 (malformed): Crashes on non-numeric string - could not convert string to float: 'abc'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable; Test 5 (malformed): Crashes on non-numeric string - could not convert string to float: 'abc'"
+    }
+  },
+  "task_07": {
+    "task_description": "Write a function that deduplicates a list of dictionaries based on an \"id\" field.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable; Test 5 (missing id): Crashes on missing id field - 'id'"
+    }
+  },
+  "task_08": {
+    "task_description": "Write a function that parses a log file and counts how many times each error type appears.",
+    "claude": {
+      "label": "clean_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "All test cases passed."
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 5 (no ERROR keyword): GPT requires ERROR keyword, found none"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 5 (no ERROR keyword): Cursor requires ERROR/FATAL/CRITICAL keyword, found none"
+    }
+  },
+  "task_09": {
+    "task_description": "Write a function to paginate a list of items given a page number and page size.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not subscriptable"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not subscriptable"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not subscriptable"
+    }
+  },
+  "task_10": {
+    "task_description": "Write a function that validates a user registration payload (email, password, age).",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'get'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'get'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'get'"
+    }
+  },
+  "task_11": {
+    "task_description": "Write a function that generates a short unique token for password reset links.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 2,
+      "failed": 3,
+      "notes": "Test 3 (None): Should handle None length gracefully, got yjPnQnrSMecQOfiOHsxj_3PF74doOZD_iWsEprT9jlo; Test 4 (zero): Should handle zero length gracefully, got ; Test 5 (negative): Crashes on negative length - negative argument not allowed"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 2,
+      "failed": 3,
+      "notes": "Test 3 (None): Should handle None length gracefully, got 1GWWnJIDE8bmxTV_Al12MEtOfsDlxSmqfd--2C2oOb8; Test 4 (zero): Should handle zero length gracefully, got ; Test 5 (negative): Crashes on negative length - negative argument not allowed"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 2,
+      "failed": 3,
+      "notes": "Test 3 (None): Should handle None length gracefully, got w1KCeVBfDq59azm1lSyPdicgpcVapoYu5cGgpvgfw_0; Test 4 (zero): Should handle zero length gracefully, got ; Test 5 (negative): Crashes on negative length - negative argument not allowed"
+    }
+  },
+  "task_12": {
+    "task_description": "Write a function to rate-limit API requests per user, allowing N requests per minute.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 5 (negative): Should handle negative max_requests gracefully, got False"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 5 (negative): Should handle negative max_requests gracefully, got False"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 5 (negative): Should handle negative max_requests gracefully, got False"
+    }
+  },
+  "task_13": {
+    "task_description": "Write a function that checks if a JWT-style token has expired based on its payload.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'split'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'split'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'split'"
+    }
+  },
+  "task_14": {
+    "task_description": "Write a function that builds a query string from a dictionary of filter parameters.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'items'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'items'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'items'"
+    }
+  },
+  "task_15": {
+    "task_description": "Write a function that retries a failing API call up to 3 times before giving up.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 2,
+      "failed": 3,
+      "notes": "Test 2 (zero retries): Unexpected error - exceptions must derive from BaseException; Test 3 (None func): Crashes on None function - 'NoneType' object is not callable; Test 5 (negative): Crashes on negative retries - exceptions must derive from BaseException"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 2,
+      "failed": 3,
+      "notes": "Test 2 (zero retries): Unexpected error - exceptions must derive from BaseException; Test 3 (None func): Crashes on None function - 'NoneType' object is not callable; Test 5 (negative): Crashes on negative retries - exceptions must derive from BaseException"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 2,
+      "failed": 3,
+      "notes": "Test 2 (zero retries): Should fail immediately, got None; Test 3 (None func): Crashes on None function - 'NoneType' object is not callable; Test 5 (negative): Should handle negative attempts gracefully, got None"
+    }
+  },
+  "task_16": {
+    "task_description": "Write a function that masks sensitive fields (like credit card numbers) in a response dictionary before logging it.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got None"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got None"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got None"
+    }
+  },
+  "task_17": {
+    "task_description": "Write a function to find the second largest number in a list.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - object of type 'NoneType' has no len()"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object is not iterable"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - object of type 'NoneType' has no len()"
+    }
+  },
+  "task_18": {
+    "task_description": "Write a function that checks if two strings are anagrams of each other.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'replace'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'lower'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'lower'"
+    }
+  },
+  "task_19": {
+    "task_description": "Write a function that finds the longest increasing subsequence in a list of numbers.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    }
+  },
+  "task_20": {
+    "task_description": "Write a function to detect a cycle in a linked list.",
+    "claude": {
+      "label": "clean_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "All test cases passed."
+    },
+    "gpt": {
+      "label": "clean_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "All test cases passed."
+    },
+    "cursor": {
+      "label": "clean_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "All test cases passed."
+    }
+  },
+  "task_21": {
+    "task_description": "Write a function that merges overlapping intervals given a list of (start, end) tuples.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []"
+    }
+  },
+  "task_22": {
+    "task_description": "Write a recursive function to calculate the nth Fibonacci number.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - '<' not supported between instances of 'NoneType' and 'int'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - '<' not supported between instances of 'NoneType' and 'int'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - '<' not supported between instances of 'NoneType' and 'int'"
+    }
+  },
+  "task_23": {
+    "task_description": "Write a function that returns the top K most frequent elements in a list.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Raises ValueError on None input instead of handling gracefully - k (2) cannot be greater than number of unique elements (0)"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []; Test 5 (negative): Should reject negative k, got []"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Should handle None input gracefully, got []; Test 5 (negative): Should reject negative k, got []"
+    }
+  },
+  "task_24": {
+    "task_description": "Write a function that converts a price string like \"$1,234.56\" into a float.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'replace'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'replace'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'replace'"
+    }
+  },
+  "task_25": {
+    "task_description": "Write a function that calculates someone's age given their birthdate.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - '>' not supported between instances of 'NoneType' and 'datetime.date'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - strptime() argument 1 must be str, not None; Test 5 (future): Should reject future birthdate, got -10"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'year'; Test 5 (future): Should reject future birthdate, got -10"
+    }
+  },
+  "task_26": {
+    "task_description": "Write a function that rounds a number to 2 decimal places for currency display.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - unsupported format string passed to NoneType.__format__; Test 5 (string): Crashes on string input - Unknown format code 'f' for object of type 'str'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - type NoneType doesn't define __round__ method; Test 5 (string): Crashes on string input - type str doesn't define __round__ method"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 3,
+      "failed": 2,
+      "notes": "Test 3 (None): Crashes on None input - type NoneType doesn't define __round__ method; Test 5 (string): Crashes on string input - type str doesn't define __round__ method"
+    }
+  },
+  "task_27": {
+    "task_description": "Write a function that checks if a given string is a valid phone number.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'strip'"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - expected string or bytes-like object, got 'NoneType'"
+    },
+    "cursor": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'strip'"
+    }
+  },
+  "task_28": {
+    "task_description": "Write a function that converts a UTC timestamp to a user's local time given their timezone.",
+    "claude": {
+      "label": "hard_fail",
+      "passed": 4,
+      "failed": 4,
+      "notes": "Test 1 (normal): 'No time zone found with key UTC'; Test 2 (epoch): 'No time zone found with key UTC'; Test 3 (None): Crashes on None input - 'NoneType' object cannot be interpreted as an integer; Test 5 (negative): [Errno 22] Invalid argument"
+    },
+    "gpt": {
+      "label": "hard_fail",
+      "passed": 4,
+      "failed": 4,
+      "notes": "Test 1 (normal): 'No time zone found with key UTC'; Test 2 (epoch): 'No time zone found with key UTC'; Test 3 (None): Crashes on None input - 'NoneType' object cannot be interpreted as an integer; Test 5 (negative): [Errno 22] Invalid argument"
+    },
+    "cursor": {
+      "label": "hard_fail",
+      "passed": 1,
+      "failed": 4,
+      "notes": "Test 1 (normal): 'No time zone found with key UTC'; Test 2 (epoch): 'No time zone found with key UTC'; Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'tzinfo'; Test 5 (negative): [Errno 22] Invalid argument"
+    }
+  },
+  "task_29": {
+    "task_description": "Write a function that truncates a string to a max length without cutting a word in half.",
+    "claude": {
+      "label": "fragile_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "defaults to adding '...' suffix not required by the task spec"
+    },
+    "gpt": {
+      "label": "clean_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "All test cases passed."
+    },
+    "cursor": {
+      "label": "clean_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "All test cases passed."
+    }
+  },
+  "task_30": {
+    "task_description": "Write a function that compares two version strings (like \"1.2.3\" vs \"1.10.0\") to see which is newer.",
+    "claude": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "test_3_different_segment_lengths: \"1.2\" vs \"1.2.0\" should normalize to equal (return 0)"
+    },
+    "gpt": {
+      "label": "edge_case_fail",
+      "passed": 4,
+      "failed": 1,
+      "notes": "test_3_different_segment_lengths: \"1.2\" vs \"1.2.0\" should normalize to equal (return 0)"
+    },
+    "cursor": {
+      "label": "clean_pass",
+      "passed": 5,
+      "failed": 0,
+      "notes": "All test cases passed."
+    }
+  }
+}
