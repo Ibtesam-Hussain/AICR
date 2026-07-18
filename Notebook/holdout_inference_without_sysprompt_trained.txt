@@ -1,0 +1,394 @@
+AICR Holdout Inference Report — SFT Adapter (SYSTEM PROMPT BAKED INTO TRAINING)
+Generated: 2026-07-18T12:06:22.283067
+System message used at inference: False
+Adapter path: /kaggle/working/aicr-sft-adapter-v3
+Total unique held-out examples: 10
+================================================================================
+
+================================================================================
+EXAMPLE 1 — task_id: task_05, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections.abc import Mapping
+
+
+def flatten_json(data, parent_key="", sep="."):
+    """
+    Flatten a nested JSON-like dictionary into a flat dictionary
+    using dot-notation keys.
+
+    Example:
+        {"a": {"b": 1}, "c": 2}
+        -> {"a.b": 1, "c": 2}
+    """
+    flat = {}
+
+    for key, value in data.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else str(key)
+
+        if isinstance(value, Mapping):
+            flat.update(flatten_json(value, new_key, sep))
+        else:
+            flat[new_key] = value
+
+    return flat
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'items'; Test 5 (lists): GPT doesn't handle nested lists, got {'a': [1, 2, 3]}
+
+--- MODEL OUTPUT ---
+The function correctly uses `collections.abc.Mapping` to handle both dicts and OrderedDicts, which is a good approach for type safety. However, the function crashes on edge cases: it doesn't validate that `data` is actually a mapping (Test 3 fails because `None` is not subscriptable), and it doesn't handle non-string keys (Test 4 crashes on `int` keys). Add type checking at the start of `flatten_json()` to validate that `data` is a mapping (e.g., `if not isinstance(data, Mapping): raise TypeError("data must be a mapping")`), and wrap the recursive access with a try-except block to skip non-string keys (e.g., `try: new_key = f"{parent_key}{sep}{key}" if parent_key else str(key) except TypeError: continue`).
+
+--- REFERENCE CHOSEN (from dataset) ---
+The recursive approach using `isinstance(value, Mapping)` is sound and handles nested dictionaries well. However, the function lacks input validation and doesn't handle two critical edge cases: (1) the function crashes when `data` is `None` because it immediately calls `.items()` without checking if the input is a valid Mapping, and (2) it doesn't recursively flatten nested lists, so `{'a': [1, 2, 3]}` remains unflattened. Add a guard clause at the start like `if data is None or not isinstance(data, Mapping): return {}` and extend the recursion logic to check `isinstance(value, list)` and iterate through list items, appending indices to the key path (e.g., `'a.0': 1, 'a.1': 2, 'a.2': 3`).
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0}
+
+================================================================================
+EXAMPLE 2 — task_id: task_08, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections import Counter
+from typing import Dict
+
+
+def count_error_types(log_file_path: str) -> Dict[str, int]:
+    """
+    Parse a log file and count occurrences of each error type.
+
+    Expected log format (example):
+        2026-07-15 10:30:12 ERROR DatabaseError: Connection failed
+
+    The error type is assumed to be the first token immediately following
+    the word 'ERROR'.
+    """
+    counts = Counter()
+
+    with open(log_file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            if "ERROR" not in line:
+                continue
+
+            part
+
+--- GROUND TRUTH NOTES ---
+Test 5 (no ERROR keyword): GPT requires ERROR keyword, found none
+
+--- MODEL OUTPUT ---
+The approach using `Counter` and parsing logic is sound for the given task. However, the function lacks input validation and crashes on edge cases: it should validate that `log_file_path` is not `None` before calling `open()`, handle the case where the file doesn't exist by catching the appropriate exception instead of silently failing, and add explicit error handling for lines without an error type (e.g., skip them or raise a descriptive exception).
+
+--- REFERENCE CHOSEN (from dataset) ---
+The function appropriately uses Counter for efficient aggregation and handles the basic parsing logic well by splitting lines and extracting the token after 'ERROR'. However, the implementation fails Test 5 because it requires the 'ERROR' keyword to be present (the `if "ERROR" not in line: continue` check skips all non-ERROR lines). The function should be revised to either: (1) clarify whether non-ERROR lines represent valid error entries that need counting, or (2) if the requirement is truly to handle logs without explicit 'ERROR' keywords, implement alternative error detection logic (e.g., regex patterns, specific error type prefixes, or configuration options) rather than hardcoding the 'ERROR' keyword dependency.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['none', 'error'], 'grounding_score': 0.67}
+
+================================================================================
+EXAMPLE 3 — task_id: task_08, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+import re
+from collections import Counter
+from pathlib import Path
+
+_ERROR_PATTERN = re.compile(
+    r"\b(?:ERROR|FATAL|CRITICAL)\b"
+    r"(?:\s*[\[\]:]\s*|\s+)"
+    r"(?P<type>\w+(?:Error|Exception)?)",
+    re.IGNORECASE,
+)
+
+
+def count_error_types(log_path: str | Path) -> dict[str, int]:
+    """Parse a log file and return a count of each error type."""
+    counts: Counter[str] = Counter()
+
+    with Path(log_path).open(encoding="utf-8", errors="replace") as f:
+        for line in f:
+            match = _ERROR_PATTERN.search(line)
+            if match:
+                counts[
+
+--- GROUND TRUTH NOTES ---
+Test 5 (no ERROR keyword): Cursor requires ERROR/FATAL/CRITICAL keyword, found none
+
+--- MODEL OUTPUT ---
+The approach of using regex to identify error types is sound and the use of `Counter` for aggregation is efficient. However, the function fails to handle the case where `log_path` is `None`, causing a `TypeError` on line 10. Add a guard clause at the start of `count_error_types()` to check if `log_path` is `None` or not a string/Path, and raise a descriptive error or return an empty result instead.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The regex-based approach with Counter is sensible for parsing structured logs, and the file handling with encoding error tolerance is well-considered. However, the regex pattern requires an ERROR/FATAL/CRITICAL keyword prefix to match any error type, which fails Test 5 (no ERROR keyword). The pattern should be made more flexible to capture error types that may appear without these keywords—consider either making the keyword portion optional with `?` quantifier, or adding an alternative pattern branch that matches error types standalone (e.g., lines containing words ending in 'Error' or 'Exception').
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['none', 'error'], 'grounding_score': 0.67}
+
+================================================================================
+EXAMPLE 4 — task_id: task_23, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+# Task: Write a function that returns the top K most frequent elements in a list.
+
+from collections import Counter
+import heapq
+
+def top_k_frequent(nums, k):
+    if k == 0:
+        return []
+    counter = Counter(nums)
+    return [item for item, _ in heapq.nlargest(k, counter.items(), key=lambda x: x[1])]
+
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got []; Test 5 (negative): Should reject negative k, got []
+
+--- MODEL OUTPUT ---
+The approach using Counter and nlargest is sound and efficient for the given task. However, the function lacks input validation: it crashes on None input (Test 3) because `Counter()` doesn't handle None gracefully, and it fails on negative k (Test 5) because heapq.nlargest() doesn't validate its second argument. Add explicit checks at the start of top_k_frequent() to handle None input by returning an empty list or raising a descriptive error, and add a guard like `if k <= 0: return []` before calling nlargest() to prevent the crash on negative values.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The use of Counter and heapq.nlargest is an efficient approach for this problem, providing good readability and performance. However, the function lacks input validation: it doesn't handle None input (Test 3 fails because Counter(None) raises TypeError but isn't caught), and it doesn't reject negative k values (Test 5 fails because negative k is silently accepted). Add explicit validation at the start of top_k_frequent() with checks like `if nums is None: raise ValueError(...)` and `if k < 0: raise ValueError(...)`.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': ['none', 'negative'], 'grounding_score': 1.0}
+
+================================================================================
+EXAMPLE 5 — task_id: task_23, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections import Counter
+from typing import Any, List
+
+
+def top_k_frequent(nums: List[Any], k: int) -> List[Any]:
+    return [item for item, _ in Counter(nums).most_common(k)]
+
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got []; Test 5 (negative): Should reject negative k, got []
+
+--- MODEL OUTPUT ---
+The approach using `Counter` and `most_common` is efficient and concise. However, the function lacks input validation: it crashes on `None` input (Test 3) because `Counter()` expects an iterable, and it fails on negative `k` values (Test 5) because `most_common()` doesn't handle negative arguments gracefully. Add type checking at the start to validate that `nums` is not `None` and that `k` is non-negative before calling `Counter()`.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The use of Counter.most_common(k) is an elegant and efficient approach for this problem. However, the function lacks input validation for edge cases: it should explicitly check for None input (Test 3 failed, returning [] instead of raising an error or returning a sensible default) and reject negative k values (Test 5 failed, silently returning [] instead of raising ValueError). Add guard clauses at the start of top_k_frequent() to validate that nums is not None and that k >= 0, raising appropriate exceptions with clear messages.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': ['none', 'negative'], 'grounding_score': 1.0}
+
+================================================================================
+EXAMPLE 6 — task_id: task_05, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+def flatten_dict(obj, parent_key="", sep="."):
+    flat = {}
+
+    if isinstance(obj, dict):
+        if not obj:
+            if parent_key:
+                flat[parent_key] = obj
+            return flat
+        for key, value in obj.items():
+            new_key = f"{parent_key}{sep}{key}" if parent_key else str(key)
+            flat.update(flatten_dict(value, new_key, sep=sep))
+    elif isinstance(obj, list):
+        if not obj:
+            if parent_key:
+                flat[parent_key] = obj
+            return flat
+        for index, value in enumerate(obj):
+            new
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got {}
+
+--- MODEL OUTPUT ---
+The recursive approach correctly handles nested dictionaries and lists using the `sep` parameter to build keys. However, the function lacks input validation: it crashes on `None` inputs (Test 3) because `isinstance(None, dict)` returns `False`, and it doesn't handle non-iterable values like strings or numbers (Test 5). Add a guard clause at the start of `flatten_dict()` to check if `obj is None` and return an empty dictionary or raise a descriptive error instead.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The recursive approach with dot-notation key building is well-structured and handles nested dicts and lists appropriately. However, the function fails to handle None input gracefully—when `obj` is None, none of the `isinstance()` checks match and the function returns an empty dict `{}` instead of preserving the None value. Add an explicit check at the beginning: `if obj is None and parent_key: flat[parent_key] = None; return flat` to ensure None values are captured with their parent keys, matching the behavior for empty dicts and lists.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none'], 'key_terms_found': ['none'], 'grounding_score': 1.0}
+
+================================================================================
+EXAMPLE 7 — task_id: task_10, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+import re
+from typing import Any
+
+EMAIL_PATTERN = re.compile(
+    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+)
+MIN_PASSWORD_LENGTH = 8
+MIN_AGE = 13
+MAX_AGE = 150
+
+
+def validate_registration(payload: dict[str, Any]) -> tuple[bool, dict[str, list[str]]]:
+    errors: dict[str, list[str]] = {}
+
+    email = payload.get("email")
+    if not isinstance(email, str) or not email.strip():
+        errors.setdefault("email", []).append("Email is required.")
+    elif not EMAIL_PATTERN.match(email.strip()):
+        errors.setdefault("email", []).append("Email is invalid.")
+
+    pa
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'get'
+
+--- MODEL OUTPUT ---
+The core validation logic using regex for email and character checks is sound and well-structured. However, the code has several critical issues: (1) `EMAIL_PATTERN` should be case-insensitive to match typical user input styles; (2) the password validation regexes (`re.search(...)` with no flags) don't support Unicode character classes like `\d`, `\w`, etc., so they fail on non-ASCII inputs; (3) the `validate_registration()` function lacks input validation for `payload` itself—when `None` is passed, it crashes because `payload.get("email")` returns `None` instead of `str`; add a guard like `if not isinstance(payload, dict): raise TypeError("payload must be a dict")` before the loop; (4) the function doesn't handle edge cases like empty strings or whitespace-only values in `email` and `password` fields; add `.strip()` after `get()` calls; (5) the function doesn't validate that `age` is numeric before type checking—it crashes when `age` is `None` or a boolean; wrap the `int()` conversion in a try-except block or validate `age` as a string first.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The function uses a clear dictionary-based error collection pattern with sensible validation rules for each field. However, the function crashes when `payload` is `None` because it immediately calls `payload.get()` without first validating that `payload` is a dictionary. Add a type check at the start: `if not isinstance(payload, dict): return False, {"payload": ["Payload must be a dictionary."]}` to handle the None input case revealed in Test 3.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0}
+
+================================================================================
+EXAMPLE 8 — task_id: task_18, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections import Counter
+
+def are_anagrams(s1: str, s2: str) -> bool:
+    """
+    Return True if s1 and s2 are anagrams of each other, otherwise False.
+    Whitespace is ignored and comparison is case-insensitive.
+    """
+    normalized1 = "".join(s1.lower().split())
+    normalized2 = "".join(s2.lower().split())
+
+    return Counter(normalized1) == Counter(normalized2)
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'lower'
+
+--- MODEL OUTPUT ---
+The approach using Counter is sound and efficient for the task. However, the function lacks input validation: it crashes on None inputs (Test 3) because Counter() doesn't handle None gracefully, and it fails on mixed-type inputs (Test 5) because the join() method can't handle non-string types. Add explicit type checking at the start of the function to validate that both s1 and s2 are strings before processing them.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The use of Counter for comparing character frequencies is an elegant and efficient approach that correctly handles the core anagram logic. However, the function lacks input validation and will crash when None is passed, as evidenced by Test 3 failing with 'NoneType' object has no attribute 'lower'. Add type checking at the start of are_anagrams() to handle None inputs gracefully, either by returning False or raising a more descriptive ValueError.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0}
+
+================================================================================
+EXAMPLE 9 — task_id: task_21, tool: claude, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+# Task: Write a function that merges overlapping intervals given a list of (start, end) tuples.
+
+def merge_intervals(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    if not intervals:
+        return []
+    
+    sorted_intervals = sorted(intervals)
+    merged = [sorted_intervals[0]]
+    
+    for start, end in sorted_intervals[1:]:
+        last_start, last_end = merged[-1]
+        
+        if start <= last_end:
+            merged[-1] = (last_start, max(last_end, end))
+        else:
+            merged.append((start, end))
+    
+    return merged
+
+print(merge_inter
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got []
+
+--- MODEL OUTPUT ---
+The core logic correctly uses sorting and iterates through the intervals to merge overlapping ones, which is sound approach for this problem. However, the function fails to handle edge cases where the input list is `None` or contains non-tuple elements—add explicit validation at the start of `merge_intervals()` to check `if not intervals: return []` before attempting to sort or iterate, and add type checking like `if not isinstance(interval, tuple) for interval in intervals`: raise ValueError("Intervals must be tuples")` to reject invalid inputs.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The sorting and merging logic is sound and efficiently handles overlapping intervals by comparing each interval's start with the previous interval's end. However, the function fails to handle None input gracefully—the type hint declares `list[tuple[int, int]]` but the code only checks `if not intervals:` which treats None the same as an empty list. To fix this, add explicit None handling before the empty check: `if intervals is None: return []` or modify the type hint to `list[tuple[int, int]] | None` and document the expected behavior.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': ['none'], 'key_terms_found': ['none'], 'grounding_score': 1.0}
+
+================================================================================
+EXAMPLE 10 — task_id: task_08, tool: claude, label: clean_pass
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+# Task: Write a function that parses a log file and counts how many times each error type appears.
+
+import re
+from collections import Counter
+
+def count_error_types(file_path, pattern=r'\b([A-Z][a-zA-Z]*(?:Error|Exception))\b'):
+    """
+    Parse a log file and count occurrences of each error type.
+
+    Args:
+        file_path (str): Path to the log file.
+        pattern (str): Regex pattern to identify error types.
+                        Defaults to matching words ending in 'Error' or 'Exception'.
+
+    Returns:
+        Counter: A Counter mapping error type -> count.
+    ""
+
+--- GROUND TRUTH NOTES ---
+All test cases passed.
+
+--- MODEL OUTPUT ---
+The function correctly uses a robust Counter with exception handling for edge cases like non-existent files and IO errors. However, it fails on Test 3 because the regex pattern `r'\b([A-Z][a-zA-Z]*(?:Error|Exception))\b'` doesn't match the input string "ERROR: Invalid username". The pattern expects whole words at the start of lines, but the input string has a colon before the error type. To fix this, you should either adjust the regex pattern to allow for partial word matches or preprocess the log lines to strip leading punctuation before searching.
+
+--- REFERENCE CHOSEN (from dataset) ---
+The function is well-structured, using a configurable regex pattern, a `Counter` for clean aggregation, and proper exception handling that wraps `FileNotFoundError` and `IOError` with more context. All test cases passed, so no issues were found in `count_error_types`.
+
+--- HEURISTIC SCORES ---
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': True, 'structure_score_0_to_3': 3}
+Grounding: {'key_terms_expected': [], 'key_terms_found': [], 'grounding_score': None}
+
+================================================================================
+SUMMARY
+================================================================================
+Average structure score (0-3 scale): 3.00
+Average grounding score (0-1 scale, keyword-overlap proxy): 0.93
+Examples scored for grounding: 9 / 10
