@@ -1,54 +1,339 @@
-**AICR — AI-Generated Code Review Assistant**
+<div align="center">
+
+# AICR
+### AI-Generated Code Review Assistant
+
+**Fine-tuning an LLM to review AI-generated code — grounded in real test evidence, not vibes.**
+
+[![Base Model](https://img.shields.io/badge/base-Qwen2.5--Coder--3B--Instruct-blue)](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct)
+[![Method](https://img.shields.io/badge/method-QLoRA-red)](https://arxiv.org/abs/2305.14314)
+[![Method](https://img.shields.io/badge/method-SFT-orange)]()
+[![Paper](https://img.shields.io/badge/paper-DPO-orange)](https://arxiv.org/abs/2305.18290)
+[![Compute](https://img.shields.io/badge/trained%20on-Kaggle%20T4-brightgreen)]()
 
 
-**Dataset Creation**
-
-*Overview*
-
-AICR fine-tunes an LLM (Qwen2.5-Coder-3B-Instruct, via SFT + DPO) to review AI-generated code with a validate-then-critique structure — acknowledging what's reasonable about an approach before raising specific, verifiable issues. Unlike generic code review, feedback correctness here is grounded in actual test-derived evidence, not subjective judgment.
-This section documents how the training dataset was built.
-
-
-*Methodology*
-
-1. Task design. 30 coding task prompts were written across four categories: data parsing/processing, backend/API-style logic, algorithmic problems, and utility functions with common edge cases. Prompts were deliberately kept casual and underspecified — the way a developer would actually phrase a request to an AI coding assistant — with no edge-case hints, so failure modes would surface naturally rather than being prompted for.
-
-2. Snippet generation. Each of the 30 tasks was submitted to three AI coding tools — Claude, GPT, and Cursor — producing 90 real, independently-generated Python snippets (one per task per tool). Each tool received the same casual wrapper prompt in a fresh session, with no shared context between tasks.
-
-3. Ground truth via testing. For each task, a shared test suite (5 test cases: normal usage, empty/None input, boundary values, and malformed input) was written against the original task requirement, not tailored to any one tool's implementation. All 90 snippets were run against their task's test suite inside an isolated virtual environment, producing an objective, reproducible pass/fail record for every snippet — not a subjective code review.
-Each result was labeled:
-
-```
-
-clean_pass — all test cases passed
-fragile_pass — passed, but with risky/non-defensive patterns
-edge_case_fail — passed normal cases, failed on an edge case
-hard_fail — failed on the basic/normal case itself
-
-```
-
-Results were stored in results/ground_truth.json, with human-readable notes explaining the specific cause of each failure.
-
-4. Notable findings from testing:
-
-All three tools (Claude, GPT, Cursor) independently made the same mistake on the UTC-to-local-timezone task — calling pytz.timezone('UTC') instead of the correct pytz.UTC, causing a hard failure on the normal case, not just an edge case.
-On version-string comparison, Claude and GPT both mishandled differing segment lengths ("1.2" vs "1.2.0"), while Cursor handled it correctly.
-The large majority of edge-case failures across all three tools were due to unhandled None input — expected, since no task prompt requested defensive None-handling, but a consistent and notable pattern across tools regardless.
-
-5. Preference pair generation. Since a large share of results converged on the same repetitive failure type (unhandled None input), raw ground-truth results were not used unfiltered for training — that would have taught the model one narrow lesson rather than a general reviewing skill. Instead, results were split into three tiers:
-TierDescriptionEntries used1Distinct, non-repetitive bugs (hard failures, multi-failure cases, or edge cases unrelated to None-handling)28 (all included)2Repetitive None-input-only failures20 (sampled from 54, spread across task types for diversity)3Clean or fragile passes8 (all included — used to train against false-positive/hallucinated review feedback)
-For each selected entry, a strong LLM (Claude Sonnet 4.6, supplemented manually for a small remainder) generated a chosen review (validate-then-critique, grounded in the actual test result) and one or more rejected reviews (blunt criticism-first, generic praise-padding, vague/non-specific feedback, or — for clean passes — a hallucinated bug that doesn't exist).
-Tier 1 entries received 3 rejected variants each; Tier 2 and Tier 3 entries received 1 each.
-Final dataset: 111 preference pairs, saved in preference_pairs.jsonl with fields task_id, tool, tier, prompt, chosen, rejected, rejected_style.
-
-
-Test suites intentionally probed beyond what the casual task prompts specified (e.g., None-input handling), as a deliberate stress-testing choice — this is why None-related failures dominate raw results, and why the dataset was tiered before training rather than used as-is.
+</div>
 
 ---
 
-Dataset scale (112 pairs) is appropriate for narrow behavioral fine-tuning (structure/style conformance) via LoRA/QLoRA, not for teaching new domain knowledge — this is a small-scale experiment, not a large-scale training run.
-A small number of Tier 2/3 pairs were generated manually (via chat) rather than through the automated pipeline, due to API credit limits — content followed the identical prompt template, but this is disclosed for transparency.
+## What is this?
+
+As AI coding assistants (Copilot, Cursor, Claude, GPT) generate more production code, review needs to catch failure patterns specific to **AI-generated output** — confident, well-formatted, but sometimes subtly wrong. AICR fine-tunes a small LLM to review that code with a **validate → critique → fix** structure, using feedback that's grounded in actual test-verified evidence, not subjective judgment.
+
+This repo documents the **entire pipeline** — dataset construction, testing methodology, fine-tuning (SFT + DPO), and every real bug hit along the way. The debugging process is part of the deliverable, not a footnote.
+
+
+Acronyms Used (for better reading and understanding): 
+
+1. SFT -> Supervised Fine Tuning
+2. DPO -> Direct Preference Optimization (Modern Reinforement Learning via Human Feedback technique)
+3. LoRA -> Low Rank Adaptation
+4. QLoRA -> Quantized Low Rank Adaptation
+5. v1, 2, 3 -> version 1, 2, 3
+---
+
+## Pipeline overview
+
+```mermaid
+flowchart LR
+    A[30 task prompts] --> B[3 AI tools generate code]
+    B --> C[90 snippets]
+    C --> D[Shared test suites]
+    D --> E[ground_truth.json]
+    E --> F[Tiered preference pairs]
+    F --> G[112 chosen/rejected pairs]
+    G --> H[SFT]
+    H --> I[DPO]
+    I --> J[Final evaluated model]
+```
 
 ---
 
-Next: Stage 1 (SFT) and Stage 2 (DPO) fine-tuning on Qwen2.5-Coder-3B-Instruct.
+## 1 · Dataset Construction
+
+### Task design → snippet generation
+
+| Step | Detail |
+|---|---|
+| **Tasks** | 30 casual, underspecified coding prompts (no edge-case hints) across 4 categories |
+| **Categories** | Data parsing · Backend/API logic · Algorithmic · Utility/edge-case functions |
+| **Tools** | **Claude**, **GPT**, **Cursor** — same prompt, fresh session each |
+| **Output** | 30 tasks × 3 tools = **90 real, independently-generated snippets** |
+
+### Ground truth via testing, not opinion
+
+```mermaid
+flowchart LR
+    S[90 snippets] --> T[5 shared test cases per task]
+    T --> R{Run in isolated venv}
+    R --> L1[clean_pass]
+    R --> L2[fragile_pass]
+    R --> L3[edge_case_fail]
+    R --> L4[hard_fail]
+```
+
+Every snippet was tested against the **same 5-case suite per task** (normal use, empty/`None`, boundary, malformed input) — written against the *original task requirement*, not any one tool's implementation.
+
+**Notable convergent findings:**
+- 🔴 All three tools made the **same mistake** on UTC timezone conversion (`pytz.timezone('UTC')` instead of `pytz.UTC`) — a hard failure on the *normal* case
+- 🟡 Claude & GPT both mishandled version-string segment-length comparison (`"1.2"` vs `"1.2.0"`); Cursor got it right
+- 🟢 The large majority of edge-case failures across all tools: unhandled `None` input — expected, since no prompt requested it, but a real pattern nonetheless
+
+### Tiering — why raw results weren't used as-is
+
+Naively training on all 90 results would have taught the model **one repetitive lesson** (`None`-handling) instead of general reviewing skill. Results were split into three tiers:
+
+| Tier | What it is | Count | Purpose |
+|---|---|---|---|
+| **1** | Distinct, non-repetitive bugs (hard fails, multi-failure, or non-`None` edge cases) | 28 | Core reviewing signal |
+| **2** | Repetitive `None`-only failures | 20 *(sampled from 54)* | Some None-handling signal, without dominating |
+| **3** | Clean / fragile passes | 8 | Teaches the model **not** to hallucinate bugs |
+
+For each entry, a strong LLM generated a **chosen** review (validate → critique, grounded in the real test result) and 1–3 **rejected** variants (blunt, generic-praise, vague, or — for clean passes — a *hallucinated* bug).
+
+**Final dataset: 112 preference pairs** → [`preference_pairs.jsonl`](./Dataset/preference_pairs.jsonl)
+
+---
+
+## 2 · Model Selection
+
+<div align="center">
+
+| Choice | Why |
+|---|---|
+| **Qwen2.5-Coder-3B-Instruct** | Code-specialized, instruction-tuned, small enough for free-tier QLoRA |
+| **QLoRA (4-bit + LoRA)** | ~1% trainable params, fits comfortably on a single T4 |
+| **Kaggle (T4×2, 9h sessions)** | More headroom than Colab free tier for iterative debugging |
+
+</div>
+
+> ⚠️ Note: use the plain HF `safetensors` checkpoint, **not** the `-GGUF` version — GGUF is for CPU inference (llama.cpp/Ollama), not `transformers`-based training.
+
+---
+
+## 3 · The Debugging Lore
+
+This project did **not** work on the first, second, or even third try. Each failure taught something real about fine-tuning mechanics — documented here rather than hidden.
+
+```mermaid
+flowchart TD
+    A[Attempt 1: SFT, 3 epochs] -->|"Output = generic code walkthrough by Qwen, no structure"| B[Hypothesis: undertrained]
+    B --> C[Attempt 2: SFT, 8 epochs]
+    C -->|"Loss never plateaued: 1.6 → 0.07"| D[Overfitting risk flagged]
+    D --> E[Checked multiple checkpoints]
+    E -->|"IDENTICAL output across checkpoints 24→96"| F[🐛 Bug hunt]
+    F --> G["Root cause #1:<br/>chat template mismatch<br/>(train: add_generation_prompt=False<br/>infer: add_generation_prompt=True)"]
+    F --> H["Root cause #2:<br/>variable reuse bug<br/>(PeftModel wrapped an<br/>already-PEFT-wrapped model)"]
+    G --> I[Fixed + retrained]
+    H --> I
+    I -->|"Adapter now demonstrably changes output"| J[✅ Working SFT]
+    J --> K[DPO on top of SFT]
+    K --> L[Final evaluation]
+```
+
+### Key bugs, root-caused
+
+<details>
+<summary><b>🐛 Bug 1 — Chat template mismatch</b></summary>
+<br>
+
+Training used `add_generation_prompt=False`; inference used `add_generation_prompt=True`. The model was trained on a prompt *shape* it never actually saw at generation time — so the LoRA weights learned to respond to a structure that never appeared during real inference. Fixed by matching `add_generation_prompt=True` in both.
+
+</details>
+
+<details>
+<summary><b>🐛 Bug 2 — Variable reuse across training/inference cells</b></summary>
+<br>
+
+```python
+# BROKEN — `model` was already PEFT-wrapped from training
+sft_model = PeftModel.from_pretrained(model, ADAPTER_PATH)
+
+# FIXED — always load a clean base model for inference
+fresh_base_model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, ...)
+sft_model = PeftModel.from_pretrained(fresh_base_model, ADAPTER_PATH)
+```
+
+This explains why output looked *identical across checkpoints 24 through 96* — the adapter was never really the thing being run.
+
+</details>
+
+<details>
+<summary><b>🐛 Bug 3 — The "it's working" illusion</b></summary>
+<br>
+
+A system-message prompt got structure adherence to 70–80%. But a **base-model-only control test** (no adapter at all, same system message) produced **near-identical output** — proving the system prompt, not the fine-tuning, was doing the work. This control test is what caught it.
+
+</details>
+
+### The confirming diagnostic
+
+```
+Active adapters: ['default']
+Generation WITH adapter active:    "...crashes with a TypeError... consider adding type checking..."
+Generation WITH adapter DISABLED:  "1. Function Definition... 2. Return Statement... 3. Syntax..."
+Are the two outputs identical? → False
+```
+✅ First conclusive proof the adapter was actually influencing generation.
+
+---
+
+## 4 · Fine-Tuning Configuration
+
+<table>
+<tr><th>Stage</th><th>Config</th></tr>
+<tr>
+<td><b>SFT</b></td>
+<td>
+
+```
+LoRA r=16, alpha=32, dropout=0.05
+target: q/k/v/o_proj, gate/up/down_proj
+lr = 2e-4, epochs = 4
+batch=2, accum=4 (effective batch 8)
+optim = paged_adamw_8bit
+```
+</td>
+</tr>
+<tr>
+<td><b>DPO</b></td>
+<td>
+
+```
+continues from SFT adapter (is_trainable=True)
+lr = 5e-6, beta = 0.1, epochs = 2
+batch=1, accum=8 (effective batch 8)
+reference model = SFT checkpoint (adapter disabled)
+```
+</td>
+</tr>
+</table>
+
+Two SFT lineages were trained for comparison:
+- **v1** — system instruction **baked into every training example**
+- **v2** — **no** system instruction in training
+
+Each was independently carried through DPO (**DPO v1** from SFT-v1, **DPO v2** from SFT-v2).
+
+---
+
+## 5 · Results
+
+### Final held-out comparison (10 unique task/tool examples, system message fixed at inference)
+
+**Lineage A — system prompt baked into SFT:**
+
+| Model | Structure (0–3) | Grounding (0–1) | False-Neg Rate |
+|---|:---:|:---:|:---:|
+| Base | 1.90 | 0.07 | 0.00 |
+| SFT (v1) | 2.80 | 0.82 | 0.00 |
+| DPO (v1) | 2.80 | 0.82 | 0.00 |
+
+**Lineage B — no system prompt in SFT:**
+
+| Model | Structure (0–3) | Grounding (0–1) | Clean-pass honesty |
+|---|:---:|:---:|:---:|
+| Base | 1.90 | 0.07 | — |
+| SFT (v2) | 2.00 | 0.78 | ❌ Hallucinated a bug on clean code |
+| DPO (v2) | 2.00 | 0.76 | ❌ Hallucinated a bug on clean code |
+
+### What the numbers mean
+
+```mermaid
+graph LR
+    subgraph "Lineage B (no sysprompt)"
+    B1[Base Qwen: 0.07] --> B2[SFT: 0.78] --> B3[DPO: 0.76]
+    end
+    subgraph "Lineage A (sysprompt-trained)"
+    A1[Base Qwen: 0.07] --> A2[SFT: 0.82] --> A3[DPO: 0.82]
+    end
+```
+
+- **Base → SFT: large, real jump.** Fine-tuning clearly taught the target behavior — prompting the base model alone never got close to this level of grounding.
+- **SFT → DPO: no further measurable gain, in either lineage.** DPO's training dynamics explain why: `rewards/chosen` barely moved (+0.04) while `rewards/rejected` dropped sharply (−2.72) — DPO mostly taught the model what to *avoid*, not what to *do better*, at this dataset scale (~90–112 pairs).
+- **The lineage choice mattered more than the DPO stage.** Lineage A never hallucinated on the one clean-pass held-out example; Lineage B hallucinated a fake bug on it **both before and after DPO.** DPO did not fix a weakness baked in at the SFT stage.
+
+---
+
+## 6 · What This Project Actually Demonstrates
+
+- ✅ Fine-tuning (SFT) meaningfully surpasses prompting-only on the base model for this task — verified with a proper **base-model control test**, not assumed
+- ✅ A system instruction baked into SFT training data is a legitimate technique (**prompt distillation**) — not "cheating," and it produced a measurably safer model
+- ✅ DPO's marginal value is **conditional on how much headroom the SFT checkpoint leaves** — it reinforced existing behavior in both lineages rather than independently correcting weaknesses
+- ✅ Two silent pipeline bugs (chat template mismatch, PEFT variable reuse) can make a **working fine-tune look completely broken** — caught via systematic diagnostics, not guesswork
+- ⚠️ At ~100-pair scale, the model reliably catches the *primary* documented issue but under-performs on snippets with **multiple distinct failures**
+- ⚠️ The model has no access to real test execution at inference time — it's pattern-matching plausible critique for **novel** code, which is a structural limitation, not just a training gap
+
+---
+
+## 7 · Repo Structure
+
+```
+AICR/
+├── README.md
+├── problems.md                          # 30 original task prompts
+├── response_generated/
+│   ├── claude/  gpt/  cursor/           # 90 AI-generated snippets
+├── tests/                               # 30 shared per-task test suites
+├── results/
+│   └── ground_truth.json                # labeled outcomes, all 90 snippets
+├── preference_pairs.jsonl               # 111 chosen/rejected training pairs
+├── models/
+│   ├── sft-adapter-v2/                  # SFT, system prompt baked in
+│   ├── sft-adapter-v3/                  # SFT, no system prompt
+│   ├── dpo-adapter-v1/                  # DPO, continued from v2
+│   └── dpo-adapter-v2/                  # DPO, continued from v3
+├── final_comparison_sysprompt.txt       # full base/SFT/DPO transcripts, Lineage A
+├── final_comparison_no_sysprompt.txt    # full base/SFT/DPO transcripts, Lineage B
+└── scripts/
+    ├── generate_snippets.py
+    ├── generate_pairs.py
+    └── final_comparison.py
+```
+
+---
+
+## 8 · Usage
+
+```python
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import PeftModel
+import torch
+
+bnb_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                                 bnb_4bit_compute_dtype=torch.bfloat16)
+
+base_model = AutoModelForCausalLM.from_pretrained(
+    "Qwen/Qwen2.5-Coder-3B-Instruct", quantization_config=bnb_config, device_map="auto")
+
+model = PeftModel.from_pretrained(base_model, "models/dpo-adapter-v1")  # recommended lineage
+tokenizer = AutoTokenizer.from_pretrained("models/dpo-adapter-v1")
+
+SYSTEM_MESSAGE = (
+    "You are a code reviewer. Follow this exact structure: "
+    "1) Briefly validate what works (1-2 sentences), "
+    "2) Use 'However' to transition to specific failures, "
+    "3) Reference specific test cases (Test 3, Test 5, etc.), "
+    "4) Provide concrete fixes."
+)
+# ⚠️ The system message is a hard requirement for this model, not optional —
+# it was baked into training and inference without it produces false negatives.
+```
+
+---
+
+## 9 · Honest Limitations
+
+- Dataset scale (111 pairs) suits narrow **behavioral** fine-tuning (structure/grounding), not knowledge injection — this is a small-scale experiment by design
+- Test suites intentionally probed beyond what casual prompts specified (e.g. `None`-handling) — a deliberate stress test, which is why raw results needed tiering before training
+- A small number of Tier 2/3 pairs were generated manually via chat (API credit limits), using the identical prompt template
+- The model cannot execute tests at real inference time — grounding on **novel** code is inherently harder than on the training distribution
+- DPO evaluation here is based on ~10 held-out examples — informative, not statistically large
+
+---
+
+<div align="center">
+
+**Built by [Ibtesam Hussain](https://github.com/Ibtesam-Hussain)** · Fine-tuned on free-tier Kaggle compute · No app, just the model
+
+</div>

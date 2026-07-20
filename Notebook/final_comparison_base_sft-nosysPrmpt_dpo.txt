@@ -1,0 +1,707 @@
+AICR Final Comparison — Base vs SFT vs DPO
+Generated: 2026-07-20T11:46:19.940777
+System message: ALWAYS INCLUDED (hardcoded requirement)
+Total unique held-out examples: 10
+================================================================================
+
+================================================================================
+EXAMPLE 1 — task_id: task_05, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections.abc import Mapping
+
+
+def flatten_json(data, parent_key="", sep="."):
+    """
+    Flatten a nested JSON-like dictionary into a flat dictionary
+    using dot-notation keys.
+
+    Example:
+        {"a": {"b": 1}, "c": 2}
+        -> {"a.b": 1, "c": 2}
+    """
+    flat = {}
+
+    for key, value in data.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else str(key)
+
+        if isinstance(value, Mapping):
+            flat.update(flatten_json(value, ne
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'items'; Test 5 (lists): GPT doesn't handle nested lists, got {'a': [1, 2, 3]}
+
+--- REFERENCE CHOSEN ---
+The recursive approach using `isinstance(value, Mapping)` is sound and handles nested dictionaries well. However, the function lacks input validation and doesn't handle two critical edge cases: (1) the function crashes when `data` is `None` because it immediately calls `.items()` without checking if the input is a valid Mapping, and (2) it doesn't recursively flatten nested lists, so `{'a': [1, 2, 3]}` remains unflattened. Add a guard clause at the start like `if data is None or not isinstance(data, Mapping): return {}` and extend the recursion logic to check `isinstance(value, list)` and iterate through list items, appending indices to the key path (e.g., `'a.0': 1, 'a.1': 2, 'a.2': 3`).
+
+--- BASE OUTPUT ---
+1) The function `flatten_json` works as intended for the provided examples and basic test cases. It correctly flattens a nested dictionary into a single-level dictionary using dot-notation keys.
+
+However, there are specific failures that need to be addressed:
+
+2) **Test 3**: The function does not handle lists within dictionaries correctly. For example, given the input `{"a": [1, 2], "b": {"c": 3}}`, the expected output should be `{"a.0": 1, "a.1": 2, "b.c": 3}`, but the current implementation will result in `{"a": [1, 2], "b.c": 3}`.
+
+3) **Test 5**: The function does not handle nested lists correctly. For example, given the input `{"a": [{"b": 1}, {"c": 2}], "d": 3}`, the expected output should be `{"a.0.b": 1, "a.0.c": 2, "d": 3}`, but the current implementation will result in `{"a": [{"b": 1}, {"c": 2}], "d": 3}`.
+
+**Concrete Fixes**:
+To address these issues, we need to modify the function to handle lists within dictionaries and nested lists. Here's the updated code:
+
+```python
+from collections.abc import Mapping
+
+
+def flatten_json(data, parent_key="", sep="."):
+    """
+    Flatten a nested JSON-like dictionary into a flat dictionary
+    using dot-notation keys.
+
+    Example:
+        {"a": {"b": 1}, "c": 2}
+        -> {"a.b": 1, "c": 2}
+    """
+    flat = {}
+
+    for key, value in data.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else str(key)
+
+        if isinstance(value, Mapping):
+
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) The core recursive approach correctly uses `isinstance(Mapping)` and properly constructs new keys with `f-string` formatting. However, the function crashes on Test 3 because it doesn't handle None values—when `data` is None, `data.items()` raises AttributeError. Add a guard at the start: `if data is None: return {}`.
+2) Test 5 fails because the function doesn't handle lists—when `value` is a list, `flatten_json(value, new_key, sep)` is called without recursion, resulting in a TypeError. Wrap the recursive call in a try-except block: `try: flat.update(flatten_json(value, new_key, sep)) except TypeError: pass`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) The recursive approach correctly flattens nested dictionaries using dot-notation keys and handles both string and numeric keys. However, the function crashes on Test 3 because it doesn't handle None values—when `data` is None, `data.items()` raises a TypeError. Add a guard at the start: `if data is None: return {}`.
+2) Test 5 fails because the function doesn't handle lists properly. When `value` is a list, it should iterate over its items instead of treating it like a dictionary. Modify the function to check if `value` is iterable (e.g., `isinstance(value, (list, tuple))`) and process each item accordingly.
+3) Test 7 crashes on Test 7 because the function doesn't handle nested lists—when `value` is a list, it should recurse into each element. Update the function to check if `value` is a list and call `flatten_json` recursively on each element.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 2 — task_id: task_08, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections import Counter
+from typing import Dict
+
+
+def count_error_types(log_file_path: str) -> Dict[str, int]:
+    """
+    Parse a log file and count occurrences of each error type.
+
+    Expected log format (example):
+        2026-07-15 10:30:12 ERROR DatabaseError: Connection failed
+
+    The error type is assumed to be the first token immediately following
+    the word 'ERROR'.
+    """
+    counts = Counter()
+
+    with open(log_file_path, "r", encoding="utf-8") as f:
+ 
+
+--- GROUND TRUTH NOTES ---
+Test 5 (no ERROR keyword): GPT requires ERROR keyword, found none
+
+--- REFERENCE CHOSEN ---
+The function appropriately uses Counter for efficient aggregation and handles the basic parsing logic well by splitting lines and extracting the token after 'ERROR'. However, the implementation fails Test 5 because it requires the 'ERROR' keyword to be present (the `if "ERROR" not in line: continue` check skips all non-ERROR lines). The function should be revised to either: (1) clarify whether non-ERROR lines represent valid error entries that need counting, or (2) if the requirement is truly to handle logs without explicit 'ERROR' keywords, implement alternative error detection logic (e.g., regex patterns, specific error type prefixes, or configuration options) rather than hardcoding the 'ERROR' keyword dependency.
+
+--- BASE OUTPUT ---
+1) Briefly validate what works:
+   The function `count_error_types` reads a log file, identifies lines containing the word "ERROR", extracts the error type from the next token, and counts its occurrences.
+
+2) However, there are several issues with the current implementation:
+
+3) Test 3: "2026-07-15 10:30:12 ERROR DatabaseError: Connection failed"
+   - Expected output: {"DatabaseError": 1}
+   - Actual output: {"DatabaseError": 0}
+
+4) Test 5: "2026-07-15 10:30:12 ERROR DatabaseError: Connection failed\n2026-07-15 10:30:12 ERROR DatabaseError: Connection failed"
+   - Expected output: {"DatabaseError": 2}
+   - Actual output: {"DatabaseError": 1}
+
+5) Test 6: "2026-07-15 10:30:12 ERROR DatabaseError: Connection failed\n2026-07-15 10:30:12 ERROR DatabaseError: Connection failed\n2026-07-15 10:30:12 ERROR DatabaseError: Connection failed"
+   - Expected output: {"DatabaseError": 3}
+   - Actual output: {"DatabaseError": 2}
+
+6) Test 7: "2026-07-15 10:30:12 ERROR DatabaseError: Connection failed\n2026-07-15 10:30:12 ERROR DatabaseError: Connection failed\n2026-07-15 10:30:12 ERROR DatabaseError: Connection failed\n2026-07-15
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['error'], 'grounding_score': 0.33} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) Briefly validate what works: The function correctly uses `Counter` and splits lines on spaces, handling typical log formats well.
+2) However, the code crashes on Test 3 because it doesn't handle cases where there's no colon after the error type (e.g., "ERROR DatabaseError"). Add a guard like `if error_type.endswith(':'):` before incrementing the count.
+3) Test 5 fails similarly when the error type is missing entirely (e.g., "ERROR"). Add another guard like `if error_type:` before incrementing the count.
+4) Fix: Add explicit checks at the end of the loop to skip lines without an error type or with malformed error types, like `if not error_type:` or `if not error_type.endswith(':'):`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['error'], 'grounding_score': 0.33} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) Briefly validate what works: The function correctly uses `Counter` for counting and handles the log line parsing logic. However, it lacks input validation for edge cases like `None` and empty strings, which cause crashes in Test 3 and Test 5.
+2) However, the function crashes on None input because `open(None)` raises a TypeError, and it crashes on empty strings because `split()` returns an empty list, causing `index("ERROR")` to fail in Test 3. Add a guard at the start of `count_error_types()` to check if `log_file_path` is None or empty, and handle these cases appropriately (e.g., raise a descriptive exception or return an empty dictionary).
+3) Specifically, fix Test 3 by adding `if not log_file_path: raise ValueError("log_file_path cannot be None or empty")` before the `with open(...)` block.
+4) Similarly, fix Test 5 by adding `if not log_file_path: return {}` before the `with open(...)` block.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['none', 'error'], 'grounding_score': 0.67} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 3 — task_id: task_08, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+import re
+from collections import Counter
+from pathlib import Path
+
+_ERROR_PATTERN = re.compile(
+    r"\b(?:ERROR|FATAL|CRITICAL)\b"
+    r"(?:\s*[\[\]:]\s*|\s+)"
+    r"(?P<type>\w+(?:Error|Exception)?)",
+    re.IGNORECASE,
+)
+
+
+def count_error_types(log_path: str | Path) -> dict[str, int]:
+    """Parse a log file and return a count of each error type."""
+    counts: Counter[str] = Counter()
+
+    with Path(log_path).open(encoding="utf-8", errors="replace") as f:
+        for line
+
+--- GROUND TRUTH NOTES ---
+Test 5 (no ERROR keyword): Cursor requires ERROR/FATAL/CRITICAL keyword, found none
+
+--- REFERENCE CHOSEN ---
+The regex-based approach with Counter is sensible for parsing structured logs, and the file handling with encoding error tolerance is well-considered. However, the regex pattern requires an ERROR/FATAL/CRITICAL keyword prefix to match any error type, which fails Test 5 (no ERROR keyword). The pattern should be made more flexible to capture error types that may appear without these keywords—consider either making the keyword portion optional with `?` quantifier, or adding an alternative pattern branch that matches error types standalone (e.g., lines containing words ending in 'Error' or 'Exception').
+
+--- BASE OUTPUT ---
+1. **Briefly validate what works**: The function `count_error_types` reads a log file, searches for lines containing error types (e.g., "ERROR", "FATAL", "CRITICAL"), and counts the occurrences of each error type.
+
+2. **However**: The function does not handle cases where the error type is followed by a colon or square brackets, which can be present in some logs. This can lead to incorrect parsing of error types.
+
+3. **Reference specific test cases**:
+   - **Test 3**: A log line like "ERROR: Something went wrong" should correctly identify "ERROR" as the error type.
+   - **Test 5**: A log line like "CRITICAL [ERROR] Something critical happened" should correctly identify "ERROR" as the error type.
+
+4. **Provide concrete fixes**:
+   - Modify the regular expression to include optional colons and square brackets after the error type:
+     ```python
+     _ERROR_PATTERN = re.compile(
+         r"\b(?:ERROR|FATAL|CRITICAL)\b"
+         r"(?:\s*[\[\]:]\s*|\s+)"
+         r"(?P<type>\w+(?:Error|Exception)?)",
+         re.IGNORECASE,
+     )
+     ```
+   - Ensure that the function handles these cases appropriately. For example, you might need to adjust the logic to extract the error type even if it's followed by a colon or square bracket.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['error'], 'grounding_score': 0.33} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) Briefly validate what works: The function correctly uses regex to identify error types and `Counter` for aggregation, handling the edge case of missing encoding errors gracefully. However, it lacks input validation for None/empty strings and doesn't handle non-string inputs like pathlib Paths.
+2) However, the function crashes on Test 3 because it tries to open a None path without validation. Add a guard clause at the start: `if not isinstance(log_path, (str, Path)): raise TypeError("log_path must be a string or Path")`
+3) Test 5 fails because it passes None instead of a string or Path, causing the crash. Add another guard clause: `if log_path is None: raise ValueError("log_path cannot be None")`
+4) Fix: Validate that `log_path` is either a string or Path before attempting to open it.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['none', 'error'], 'grounding_score': 0.67} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) The approach using regex and Counter is sound for parsing log lines. However, the function crashes on Test 3 because it doesn't handle None input gracefully; add a guard clause like `if not log_path: raise ValueError("log_path cannot be None")` before the open() call.
+2) Test 5 fails because the regex doesn't capture "ERROR" when it's all uppercase; modify the pattern to `r"\b(?:ERROR|FATAL|CRITICAL)\b"` to be case-insensitive or explicitly handle uppercase matches.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'error', 'keyword'], 'key_terms_found': ['none', 'error'], 'grounding_score': 0.67} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 4 — task_id: task_23, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+# Task: Write a function that returns the top K most frequent elements in a list.
+
+from collections import Counter
+import heapq
+
+def top_k_frequent(nums, k):
+    if k == 0:
+        return []
+    counter = Counter(nums)
+    return [item for item, _ in heapq.nlargest(k, counter.items(), key=lambda x: x[1])]
+
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got []; Test 5 (negative): Should reject negative k, got []
+
+--- REFERENCE CHOSEN ---
+The use of Counter and heapq.nlargest is an efficient approach for this problem, providing good readability and performance. However, the function lacks input validation: it doesn't handle None input (Test 3 fails because Counter(None) raises TypeError but isn't caught), and it doesn't reject negative k values (Test 5 fails because negative k is silently accepted). Add explicit validation at the start of top_k_frequent() with checks like `if nums is None: raise ValueError(...)` and `if k < 0: raise ValueError(...)`.
+
+--- BASE OUTPUT ---
+1. **Briefly validate what works**: The provided code correctly implements the task of finding the top K most frequent elements in a list using Python's `collections.Counter` and `heapq.nlargest`. It handles the edge case where `k` is 0 by returning an empty list.
+
+2. **However**, there are specific failures with the current implementation:
+   - **Test 3**: The input `[1, 1, 1, 2, 2, 3]` with `k=2` should return `[1, 2]`, but the current implementation returns `[1, 1]`.
+   - **Test 5**: The input `[1, 2, 2, 3, 3, 3, 4, 4, 4, 4]` with `k=3` should return `[4, 3, 2]`, but the current implementation returns `[4, 4, 4]`.
+
+3. **Reference specific test cases**:
+   - **Test 3**: The input `[1, 1, 1, 2, 2, 3]` with `k=2` should return `[1, 2]`.
+   - **Test 5**: The input `[1, 2, 2, 3, 3, 3, 4, 4, 4, 4]` with `k=3` should return `[4, 3, 2]`.
+
+4. **Concrete fixes**:
+   - To fix Test 3, ensure that the `heapq.nlargest` function correctly identifies the top K elements based on their frequency. This can be achieved by ensuring that the lambda function used in `heapq.nlargest` correctly compares the frequencies.
+   - To fix Test 5, ensure that the `heapq.nlargest` function correctly handles ties in frequency. This can
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) Briefly validate what works: The core approach using Counter and nlargest is sound and handles edge cases like k=0 correctly.
+2) However, the function crashes on Test 3 because it doesn't handle negative k values—add a guard clause like `if k < 0: raise ValueError("k must be non-negative")`.
+3) Test 5 fails because it expects an empty result when k=0 but the current implementation returns None—modify the function to return [] instead of None when k==0.
+4) Fix: Add a guard clause at the start of top_k_frequent() to check if k is None or negative and raise a descriptive error. Change the return statement for k==0 to return [].
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': ['none', 'negative'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) Briefly validate what works: The core approach using Counter and nlargest is sound and handles edge cases like k=0 correctly.
+2) However, the code crashes on Test 3 because it doesn't validate that `nums` is not None before calling `Counter(nums)`. Add a guard at the start: `if nums is None: raise ValueError("nums cannot be None")`.
+3) Test 5 fails because `heapq.nlargest` expects a key function that returns a sortable value, but `counter.items()` returns tuples (key, count) without a numeric sort key. Replace `lambda x: x[1]` with `operator.itemgetter(1)` or use `sorted(counter.items(), key=lambda x: x[1], reverse=True)[:k]` instead of `heapq.nlargest()`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': ['none'], 'grounding_score': 0.5} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 5 — task_id: task_23, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections import Counter
+from typing import Any, List
+
+
+def top_k_frequent(nums: List[Any], k: int) -> List[Any]:
+    return [item for item, _ in Counter(nums).most_common(k)]
+
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got []; Test 5 (negative): Should reject negative k, got []
+
+--- REFERENCE CHOSEN ---
+The use of Counter.most_common(k) is an elegant and efficient approach for this problem. However, the function lacks input validation for edge cases: it should explicitly check for None input (Test 3 failed, returning [] instead of raising an error or returning a sensible default) and reject negative k values (Test 5 failed, silently returning [] instead of raising ValueError). Add guard clauses at the start of top_k_frequent() to validate that nums is not None and that k >= 0, raising appropriate exceptions with clear messages.
+
+--- BASE OUTPUT ---
+1. **Briefly validate what works**: The provided code correctly uses the `Counter` from the `collections` module to count the frequency of each element in the input list `nums`. It then retrieves the `k` most common elements using the `most_common` method and returns them as a list.
+
+2. **However**: There is a potential issue with the code when `k` is greater than the number of unique elements in the list. In such cases, the code will return all unique elements, which may not be the desired behavior.
+
+3. **Reference specific test cases**:
+   - **Test 3**: Consider the input `nums = [1, 1, 2, 2, 3]` and `k = 3`. The expected output should be `[1, 2, 3]`, but the current implementation might return `[1, 2, 3, 1]` because it returns all unique elements.
+   - **Test 5**: For the input `nums = [1, 1, 1, 1, 1]` and `k = 2`, the expected output should be `[1]`, but the current implementation might return `[1, 1]`.
+
+4. **Provide concrete fixes**:
+   To fix these issues, you can add a check to ensure that `k` does not exceed the number of unique elements in the list. Here's the updated code:
+
+   ```python
+   from collections import Counter
+   from typing import Any, List
+
+   def top_k_frequent(nums: List[Any], k: int) -> List[Any]:
+       if k > len(set(nums)):
+           raise ValueError("k cannot be greater than the number of unique elements in nums")
+       
+       return [item for item, _ in Counter(nums).most_common(k)]
+   ```
+
+   This modification raises a `ValueError` if `k` is greater than the number of unique
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) Briefly validate what works: The approach correctly uses `Counter` and `most_common` to efficiently find the top k frequent items. However, it fails when `k > len(nums)` because `most_common(k)` returns all elements when k exceeds the count, and the list comprehension doesn't filter them out. When k=3 but there are only 2 unique values, it returns both instead of truncating.
+2) However, the code crashes on Test 3: `top_k_frequent([1, 1, 2, 2, 3], 3)` returns `[1, 2, 3]` instead of `[1, 2]`. The `most_common(k)` call returns all 5 elements, and the list comprehension doesn't truncate the result.
+3) Additionally, Test 5 fails: `top_k_frequent([1, 1, 1, 2, 2, 3], 1)` returns `[1]` instead of `[1]` because the counter counts all occurrences, and the list comprehension doesn't filter them out.
+4) Fix: Add a guard clause before the list comprehension to truncate the result if k > len(nums): `return [item for item, _ in Counter(nums).most_common(min(k, len(nums)))].
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) Briefly validate what works: The approach correctly uses `Counter` and `most_common` to efficiently find the top k frequent items. However, it fails when `nums` is None (Test 3) because the function doesn't handle edge cases; add a guard clause like `if nums is None: raise ValueError("nums cannot be None")`.
+2) However, the function crashes on negative input (Test 5) because `Counter` expects hashable keys, but `Any` allows non-hashable types like lists. Modify the type hint to `List[Hashable]` or use `collections.defaultdict(int)` with a custom key function that hashes the elements before counting.
+3) Test 7 fails because the function returns a list of tuples instead of a list of values. Change the list comprehension to `[item for item, _ in ...]` to extract just the first element from each tuple.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'negative'], 'key_terms_found': ['none', 'negative'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 6 — task_id: task_05, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+def flatten_dict(obj, parent_key="", sep="."):
+    flat = {}
+
+    if isinstance(obj, dict):
+        if not obj:
+            if parent_key:
+                flat[parent_key] = obj
+            return flat
+        for key, value in obj.items():
+            new_key = f"{parent_key}{sep}{key}" if parent_key else str(key)
+            flat.update(flatten_dict(value, new_key, sep=sep))
+    elif isinstance(obj, list):
+        if not obj:
+            if parent_key:
+                flat[p
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got {}
+
+--- REFERENCE CHOSEN ---
+The recursive approach with dot-notation key building is well-structured and handles nested dicts and lists appropriately. However, the function fails to handle None input gracefully—when `obj` is None, none of the `isinstance()` checks match and the function returns an empty dict `{}` instead of preserving the None value. Add an explicit check at the beginning: `if obj is None and parent_key: flat[parent_key] = None; return flat` to ensure None values are captured with their parent keys, matching the behavior for empty dicts and lists.
+
+--- BASE OUTPUT ---
+1. **Briefly validate what works**: The function `flatten_dict` appears to work correctly for flattening dictionaries and lists. It recursively processes nested dictionaries and lists, converting them into a single-level dictionary with keys representing the path to each value.
+
+2. **However**: There are several issues with the implementation that need to be addressed:
+   - **Handling of empty lists**: The function does not handle empty lists correctly. If an empty list is encountered, it should be added to the result dictionary with its original key.
+   - **Handling of empty dictionaries**: Similarly, if an empty dictionary is encountered, it should be added to the result dictionary with its original key.
+   - **Handling of non-dictionary and non-list objects**: The function does not handle non-dictionary and non-list objects correctly. These should be added to the result dictionary with their original key.
+
+3. **Reference specific test cases**:
+   - **Test 3**: An empty dictionary `{}` should be flattened to `{}`.
+   - **Test 5**: A dictionary with an empty list `{ "a": [] }` should be flattened to `{ "a": [] }`.
+   - **Test 6**: A dictionary with an empty dictionary `{ "a": {} }` should be flattened to `{ "a": {} }`.
+
+4. **Provide concrete fixes**:
+   - Add checks for empty lists and dictionaries at the beginning of the function to handle them appropriately.
+   - Update the logic to add non-dictionary and non-list objects to the result dictionary with their original key.
+
+Here's the updated code with the fixes:
+
+```python
+def flatten_dict(obj, parent_key="", sep="."):
+    flat = {}
+
+    if isinstance(obj, dict):
+        if not obj:
+            if parent_key:
+                flat[parent_key] = obj
+            return flat
+        for key, value in obj.items():
+            new_key = f"{parent_key}{sep}{key}" if parent_key else str(key
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) The recursive approach correctly handles nested dictionaries and lists. However, the function crashes on Test 3 because it doesn't handle None values—when `obj` is None, `isinstance(obj, dict)` returns False but `isinstance(obj, list)` also returns False, causing the function to return None instead of an empty dictionary. Add a guard clause at the start: `if obj is None: return {}`.
+2) Test 5 fails because the function doesn't handle nested structures with mixed types—when `obj` is a mix of dicts and lists, the recursion doesn't properly handle the nested structure. Add type checking before the recursive call: `if isinstance(obj, (dict, list)): flat.update(flatten_dict(value, new_key, sep=sep))`
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none'], 'key_terms_found': ['none'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) The recursive approach correctly handles nested dictionaries and lists by using `flatten_dict(value, new_key, sep=sep)`. However, the function crashes on Test 3 because it doesn't handle None values—when `obj` is None, `isinstance(obj, dict)` returns False but `obj.items()` raises a TypeError. Add a guard at the start of the function: `if obj is None: return {}`.
+2) Test 5 fails because the function doesn't handle empty strings—when `obj` is an empty string, `isinstance(obj, dict)` returns False but `str(key)` crashes. Add a type check before the `if isinstance(obj, dict):` line: `if not isinstance(obj, (dict, list)): return {parent_key: obj}`.
+3) Test 7 crashes on None values because the function doesn't handle None values—when `obj` is None, `isinstance(obj, dict)` returns False but `obj.items()` raises a TypeError. Add a guard at the start of the function: `if obj is None: return {}`.
+4) Test 8 crashes on None values because the function doesn't handle None values—when `obj` is None, `isinstance(obj, dict)` returns False but `obj.items()` raises a TypeError. Add a guard at the start of the function: `if obj is None: return {}`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none'], 'key_terms_found': ['none'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 7 — task_id: task_10, tool: cursor, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+import re
+from typing import Any
+
+EMAIL_PATTERN = re.compile(
+    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+)
+MIN_PASSWORD_LENGTH = 8
+MIN_AGE = 13
+MAX_AGE = 150
+
+
+def validate_registration(payload: dict[str, Any]) -> tuple[bool, dict[str, list[str]]]:
+    errors: dict[str, list[str]] = {}
+
+    email = payload.get("email")
+    if not isinstance(email, str) or not email.strip():
+        errors.setdefault("email", []).append("Email is required.")
+    elif not EMAIL_PATT
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'get'
+
+--- REFERENCE CHOSEN ---
+The function uses a clear dictionary-based error collection pattern with sensible validation rules for each field. However, the function crashes when `payload` is `None` because it immediately calls `payload.get()` without first validating that `payload` is a dictionary. Add a type check at the start: `if not isinstance(payload, dict): return False, {"payload": ["Payload must be a dictionary."]}` to handle the None input case revealed in Test 3.
+
+--- BASE OUTPUT ---
+1. **Briefly validate what works**: The code appears to be designed to validate user registration data by checking for the presence of required fields, validating email format, ensuring a minimum password length and complexity, and validating age within specified limits.
+
+2. **However**, there are several issues with the code that need to be addressed:
+
+   - **Test 3**: The code does not handle the case where the `payload` dictionary is empty. If the payload is empty, the function should return `False` and an empty error dictionary.
+   
+   - **Test 5**: The code does not handle the case where the `payload` dictionary contains additional keys that are not relevant to the validation process. These extra keys should be ignored.
+
+3. **Reference specific test cases**:
+   - **Test 3**: When the `payload` dictionary is empty, the function should return `False` and an empty error dictionary.
+   - **Test 5**: When the `payload` dictionary contains additional keys, these keys should be ignored.
+
+4. **Provide concrete fixes**:
+   - Add a check at the beginning of the function to return `False` and an empty error dictionary if the `payload` is empty.
+   - Modify the function to ignore any keys in the `payload` dictionary that are not relevant to the validation process.
+
+Here's the updated code with the fixes:
+
+```python
+import re
+from typing import Any
+
+EMAIL_PATTERN = re.compile(
+    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+)
+MIN_PASSWORD_LENGTH = 8
+MIN_AGE = 13
+MAX_AGE = 150
+
+
+def validate_registration(payload: dict[str, Any]) -> tuple[bool, dict[str, list[str]]]:
+    if not payload:
+        return False, {}
+
+    errors: dict[str, list[str]] = {}
+
+    email = payload
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) The core validation logic for email, password, and age is well-structured and uses appropriate type checking and regex patterns. However, the code fails to handle `None` values for `email` and `age`, causing Test 3 to fail with "NoneType object is not subscriptable". Add explicit checks like `if age is None: ...` before accessing `age.strip()` and `if age is None or age == "": ...` before converting to int.
+2) The password validation regexes correctly check for required character classes but lack validation for `None` input in Test 5, causing "NoneType object is not subscriptable". Add a guard like `if password is None: ...` before calling `re.search()`.
+3) The code correctly validates that `age` is an integer within bounds but fails to handle `None` input in Test 6, causing "NoneType object is not subscriptable". Add a guard like `if age is None: ...` before converting to int.
+4) The code correctly validates that `email` is a non-empty string but fails to handle `None` input in Test 7, causing "NoneType object is not subscriptable". Add a guard like `if email is None: ...` before calling `strip()` and `if not email.strip(): ...` before matching the pattern.
+5) The code correctly validates that `password` is a non-empty string but fails to handle `None` input in Test 8, causing "NoneType object is not subscriptable". Add a guard like `if password is None: ...` before calling `strip()` and `if not password: ...` before validating length and character classes.
+6) The code correctly validates that `age` is an integer within bounds but fails to handle `None` input in Test 9, causing "NoneType object is not subscriptable". Add a guard like `if age is None: ...` before converting to int
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) The core validation logic for email, password, and age is well-structured with clear type checking and regex/email validation. However, the code fails to handle `None` values for `email` and `age`, causing Test 3 to fail because `payload.get("email")` returns `None` instead of a string when the key is missing. Add explicit checks like `if age is None: errors.setdefault("age", []).append("Age is required.")` before the type check.
+2) The password validation regexes correctly target specific character classes but lacks validation for `None` input in Test 5, causing it to fail because `password` is `None` rather than a string. Add a similar check before the password-specific validations: `if password is None: errors.setdefault("password", []).append("Password is required.")`.
+3) The `MIN_AGE` and `MAX_AGE` range validation in Test 6 fails because the condition `MIN_AGE <= age <= MAX_AGE` doesn't account for negative numbers. Modify the validation to use `isinstance(age, int)` and then compare directly: `if age < MIN_AGE or age > MAX_AGE:`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 8 — task_id: task_18, tool: gpt, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+from collections import Counter
+
+def are_anagrams(s1: str, s2: str) -> bool:
+    """
+    Return True if s1 and s2 are anagrams of each other, otherwise False.
+    Whitespace is ignored and comparison is case-insensitive.
+    """
+    normalized1 = "".join(s1.lower().split())
+    normalized2 = "".join(s2.lower().split())
+
+    return Counter(normalized1) == Counter(normalized2)
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Crashes on None input - 'NoneType' object has no attribute 'lower'
+
+--- REFERENCE CHOSEN ---
+The use of Counter for comparing character frequencies is an elegant and efficient approach that correctly handles the core anagram logic. However, the function lacks input validation and will crash when None is passed, as evidenced by Test 3 failing with 'NoneType' object has no attribute 'lower'. Add type checking at the start of are_anagrams() to handle None inputs gracefully, either by returning False or raising a more descriptive ValueError.
+
+--- BASE OUTPUT ---
+1) The function `are_anagrams` correctly checks if two strings are anagrams by normalizing them (converting to lowercase and removing whitespace) and then comparing the character counts using `Counter`.
+
+2) However, there are issues with the function when dealing with strings that contain non-alphabetic characters.
+
+3) **Test 3**: "Anagram" and "nag a ram" should be considered anagrams, but the current implementation does not handle this correctly because it removes all whitespace, including spaces in the second string.
+
+4) **Test 5**: "A gentleman" and "Elegant man" should be considered anagrams, but the current implementation does not handle this correctly because it removes all whitespace, including spaces in the second string.
+
+5) **Test 6**: "Clint Eastwood" and "Old West Action" should be considered anagrams, but the current implementation does not handle this correctly because it removes all whitespace, including spaces in the second string.
+
+6) **Test 7**: "Hello, World!" and "World, Hello!" should be considered anagrams, but the current implementation does not handle this correctly because it removes all whitespace, including spaces in the second string.
+
+**Fixes**:
+To address these issues, we need to ensure that the function correctly handles non-alphabetic characters and maintains the order of characters. We can achieve this by using a more robust approach to normalize the strings and compare them.
+
+Here's the corrected code:
+
+```python
+from collections import Counter
+
+def are_anagrams(s1: str, s2: str) -> bool:
+    """
+    Return True if s1 and s2 are anagrams of each other, otherwise False.
+    Whitespace is ignored and comparison is case-insensitive.
+    """
+    def normalize(s):
+        # Remove non-alphabetic characters and convert to lowercase
+        return ''.join(c.lower() for c in s if c.isalpha())
+
+    normalized1 = normalize
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) Briefly validate what works: The function correctly uses `Counter` for efficient comparison after normalizing input strings by converting to lowercase and removing whitespace. However, it fails on edge cases where the function crashes on None inputs (Test 3) because `s1.lower()` and `s2.lower()` are called before validation, and `None` doesn't support `.split()`. Similarly, it crashes on string inputs with non-alphanumeric characters (Test 5) because `Counter` rejects them.
+2) However, the function crashes on None inputs (Test 3) because `s1.lower()` and `s2.lower()` are called before validation, and `None` doesn't support `.split()`. Add a guard at the start like `if not isinstance(s1, str) or not isinstance(s2, str): raise TypeError("Both arguments must be strings")`.
+3) Also, the function crashes on string inputs with non-alphanumeric characters (Test 5) because `Counter` rejects them. Modify the normalization step to filter out non-alphanumeric characters using a list comprehension: `normalized1 = "".join(c.lower() for c in s1 if c.isalnum())` and similarly for `s2`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) The approach using Counter is sound and handles the whitespace and case insensitivity correctly. However, the function crashes on Test 3 because it doesn't handle None inputs—add a guard clause like `if not s1 or not s2: return False` before normalization. Similarly, Test 5 fails when `s1` is 'a' and `s2` is None—add explicit type checking before the split() call: `if isinstance(s1, str) and isinstance(s2, str): ...`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none', 'type'], 'key_terms_found': ['none', 'type'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 9 — task_id: task_21, tool: claude, label: edge_case_fail
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+# Task: Write a function that merges overlapping intervals given a list of (start, end) tuples.
+
+def merge_intervals(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    if not intervals:
+        return []
+    
+    sorted_intervals = sorted(intervals)
+    merged = [sorted_intervals[0]]
+    
+    for start, end in sorted_intervals[1:]:
+        last_start, last_end = merged[-1]
+        
+        if start <= last_end:
+            merged[-1] = (last_start, max(last_end, e
+
+--- GROUND TRUTH NOTES ---
+Test 3 (None): Should handle None input gracefully, got []
+
+--- REFERENCE CHOSEN ---
+The sorting and merging logic is sound and efficiently handles overlapping intervals by comparing each interval's start with the previous interval's end. However, the function fails to handle None input gracefully—the type hint declares `list[tuple[int, int]]` but the code only checks `if not intervals:` which treats None the same as an empty list. To fix this, add explicit None handling before the empty check: `if intervals is None: return []` or modify the type hint to `list[tuple[int, int]] | None` and document the expected behavior.
+
+--- BASE OUTPUT ---
+1. The function `merge_intervals` correctly merges overlapping intervals from a list of (start, end) tuples.
+2. However, the function does not handle cases where the input list is empty, which is already handled by returning an empty list.
+3. Test 3: `print(merge_intervals([(1, 3), (2, 6), (8, 10), (15, 18)]))`
+   - Expected output: `[(1, 6), (8, 10), (15, 18)]`
+   - Actual output: `[(1, 6), (8, 10), (15, 18)]`
+   - No issues here.
+4. Test 5: `print(merge_intervals([(1, 4), (4, 5)]))`
+   - Expected output: `[(1, 5)]`
+   - Actual output: `[(1, 5)]`
+   - No issues here.
+5. Test 6: `print(merge_intervals([]))`
+   - Expected output: `[]`
+   - Actual output: `[]`
+   - No issues here.
+
+No fixes are needed as the function behaves as expected across all test cases.
+Structure: {'has_transition': True, 'has_fix_language': False, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 1} | Grounding: {'key_terms_expected': ['none'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+--- SFT OUTPUT ---
+1) The core sorting and merging logic correctly identifies overlaps and merges them into a single interval. However, the function fails when `intervals` is `None` (Test 3) because it doesn't handle the edge case before calling `sorted()`. Add a guard like `if intervals is None: return []` before the `if not intervals:` check.
+2) The function also crashes on empty input (Test 5) because it tries to access `sorted_intervals[0]` without checking if `intervals` is empty. Add the same guard as above to handle this case.
+3) The function doesn't handle cases where intervals are reversed (Test 6) or have negative values (Test 7). Add type validation at the start: `if not all(isinstance(i, tuple) and len(i) == 2 and isinstance(x, (int, float)) for i in intervals): raise TypeError("Intervals must be tuples of two numeric values")` before the sort to reject invalid inputs.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none'], 'key_terms_found': ['none'], 'grounding_score': 1.0} | FalseNeg: {'false_negative_risk': False}
+
+--- DPO OUTPUT ---
+1) The core sorting and merging logic correctly identifies overlaps and merges them using tuple comparison, which is sound.
+2) However, the function fails on Test 3: `merge_intervals([(1, 4), (2, 6)])` returns `[(1, 6)]` instead of `[(1, 4), (2, 6)]`. The issue is that the condition `if start <= last_end:` should be `if start <= last_end:` with strict inequality (`<`) to handle edge cases like `(1, 2)` and `(2, 3)` correctly.
+3) Similarly, Test 5 fails: `merge_intervals([(1, 3), (2, 4), (3, 5)])` returns `[(1, 5)]` instead of `[(1, 3), (3, 5)]`. The same strict inequality fix applies here.
+4) Fix: Change `if start <= last_end:` to `if start < last_end:` in both places where tuples are compared.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': ['none'], 'key_terms_found': [], 'grounding_score': 0.0} | FalseNeg: {'false_negative_risk': False}
+
+================================================================================
+EXAMPLE 10 — task_id: task_08, tool: claude, label: clean_pass
+================================================================================
+
+--- PROMPT ---
+Review this code:
+
+# Task: Write a function that parses a log file and counts how many times each error type appears.
+
+import re
+from collections import Counter
+
+def count_error_types(file_path, pattern=r'\b([A-Z][a-zA-Z]*(?:Error|Exception))\b'):
+    """
+    Parse a log file and count occurrences of each error type.
+
+    Args:
+        file_path (str): Path to the log file.
+        pattern (str): Regex pattern to identify error types.
+                        Defaults to matching words ending in 
+
+--- GROUND TRUTH NOTES ---
+All test cases passed.
+
+--- REFERENCE CHOSEN ---
+The function is well-structured, using a configurable regex pattern, a `Counter` for clean aggregation, and proper exception handling that wraps `FileNotFoundError` and `IOError` with more context. All test cases passed, so no issues were found in `count_error_types`.
+
+--- BASE OUTPUT ---
+1) Briefly validate what works: The code successfully reads a log file, identifies error types using a regex pattern, and counts their occurrences. It handles basic exceptions like `FileNotFoundError` and `IOError`.
+
+2) However, there are specific failures that need to be addressed:
+
+3) Reference specific test cases (Test 3, Test 5, etc.):
+   - **Test 3**: The function should correctly handle case insensitivity when identifying error types. For example, it should count both "Error" and "error" as the same type.
+
+4) Provide concrete fixes:
+   - Modify the regex pattern to include case insensitivity by adding the `re.IGNORECASE` flag. This will ensure that the function correctly identifies error types regardless of their case in the log file.
+
+Here's the updated code with the fix:
+
+```python
+import re
+from collections import Counter
+
+def count_error_types(file_path, pattern=r'\b([A-Z][a-zA-Z]*(?:Error|Exception))\b', flags=re.IGNORECASE):
+    """
+    Parse a log file and count occurrences of each error type.
+
+    Args:
+        file_path (str): Path to the log file.
+        pattern (str): Regex pattern to identify error types.
+                        Defaults to matching words ending in 'Error' or 'Exception'.
+        flags (int): Regex flags to modify the pattern behavior.
+                        Defaults to re.IGNORECASE for case insensitivity.
+
+    Returns:
+        Counter: A Counter mapping error type -> count.
+    """
+    error_counts = Counter()
+    regex = re.compile(pattern, flags)
+
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+            for line in f:
+                matches = regex.findall(line)
+                error_counts.update(matches)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Log file not found: {file_path}")
+    except IOError as e:
+        raise IOError(f"Error reading log file
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': [], 'key_terms_found': [], 'grounding_score': None} | FalseNeg: None
+
+--- SFT OUTPUT ---
+1) The function correctly uses `Counter` for counting and handles edge cases like `FileNotFoundError` and `IOError`. However, it crashes on Test 3 because the regex pattern doesn't match the input string format; the pattern should be adjusted to capture valid error type strings. For Test 5, the function fails to handle None input gracefully; add a guard clause at the start to check if `file_path` is None before calling `open()`.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': [], 'key_terms_found': [], 'grounding_score': None} | FalseNeg: None
+
+--- DPO OUTPUT ---
+1) The function correctly uses `Counter` for efficient counting and handles edge cases like `FileNotFoundError` and `IOError`. However, it crashes on Test 3 because the regex pattern `r'\b([A-Z][a-zA-Z]*(?:Error|Exception))\b'` doesn't match the empty string when `file_path=None`, causing `NoneType` to be passed to `open()`. Add a guard at the start: `if not file_path: raise ValueError("file_path cannot be None")`.
+2) Test 5 fails because the function doesn't handle binary files properly—add a mode parameter to `open()` or use `f.read().decode('utf-8', errors='replace')` to handle non-text files gracefully.
+Structure: {'has_transition': True, 'has_fix_language': True, 'avoids_walkthrough_format': False, 'structure_score_0_to_3': 2} | Grounding: {'key_terms_expected': [], 'key_terms_found': [], 'grounding_score': None} | FalseNeg: None
+
+================================================================================
+FINAL SUMMARY
+================================================================================
+Model    Avg Structure (0-3)    Avg Grounding (0-1)    False Neg Rate    
+base     1.90                   0.07                   0.00               (0/9)
+sft      2.00                   0.78                   0.00               (0/9)
+dpo      2.00                   0.76                   0.00               (0/9)
