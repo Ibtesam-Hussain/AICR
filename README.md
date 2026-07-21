@@ -270,25 +270,34 @@ graph LR
 
 ```
 AICR/
-├── README.md
-├── problems.md                          # 30 original task prompts
-├── response_generated/
-│   ├── claude/  gpt/  cursor/           # 90 AI-generated snippets
-├── tests/                               # 30 shared per-task test suites
-├── results/
-│   └── ground_truth.json                # labeled outcomes, all 90 snippets
-├── preference_pairs.jsonl               # 111 chosen/rejected training pairs
-├── models/
-│   ├── sft-adapter-v2/                  # SFT, system prompt baked in
-│   ├── sft-adapter-v3/                  # SFT, no system prompt
-│   ├── dpo-adapter-v1/                  # DPO, continued from v2
-│   └── dpo-adapter-v2/                  # DPO, continued from v3
-├── final_comparison_sysprompt.txt       # full base/SFT/DPO transcripts, Lineage A
-├── final_comparison_no_sysprompt.txt    # full base/SFT/DPO transcripts, Lineage B
-└── scripts/
-    ├── generate_snippets.py
-    ├── generate_pairs.py
-    └── final_comparison.py
+├── .gitattributes
+├── .gitignore
+├── Dataset/
+│   ├── Pref-Pair-Gen.py
+│   ├── preference_pairs.jsonl
+│   ├── response_generated/ (included 90 tasks responses from different AI)
+│   │   ├── problems.md
+│   │   ├── results/
+│   │   │   └── ground_truth.json
+│   │   └── tests/ (included 150 test cases .py programs) 
+│   └── verify.py
+├── Models/
+│   ├── FT-with_sysprompts/
+│   │   ├── aicr-sft-adapter-v1.zip
+│   │   └── aicr_dpo_adapter_v1.zip
+│   └── FT-without_sysprompts/
+│       ├── aicr-sft-adapter-v2.zip
+│       └── aicr_dpo_adapter_v2.zip
+├── Notebook/
+│   ├── AICR-DPO-v2.ipynb
+│   ├── AICR-DPO.ipynb
+│   ├── FT.ipynb
+│   ├── aicr-sft-nosysprom.ipynb
+│   ├── final_comparison_base_sft-nosysPrmpt_dpo.txt
+│   ├── holdout_inference_sysprompt_trained.txt
+│   ├── holdout_inference_without_sysprompt_trained.txt
+│   └── sys_pmpt_final_comparison_base_sft_dpo.txt
+└── README.md
 ```
 
 ---
