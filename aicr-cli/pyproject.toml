@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aicr"
+version = "0.1.0"
+description = "AICR — fine-tuned LLM code reviewer for AI-generated code"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.0",
+    "transformers>=4.46",
+    "peft>=0.13",
+    "bitsandbytes>=0.44",
+    "accelerate>=1.0",
+]
+
+[project.scripts]
+aicr = "aicr.cli:main"
+
+[tool.setuptools]
+packages = ["aicr"]
